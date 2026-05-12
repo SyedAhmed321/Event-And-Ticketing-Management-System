@@ -1,6 +1,15 @@
-﻿namespace Event___Ticketing_Management_System.Interfaces.Repositories
+﻿using Event___Ticketing_Management_System.Models.Events;
+
+namespace Event___Ticketing_Management_System.Interfaces.Repositories
 {
     public interface IEventRepository
     {
+        Task<List<Event>> GetAllAsync();
+        Task<Event?> GetByIdAsync(string id);
+        Task<List<Event>> GetByOrganizerIdAsync(string organizerId);
+
+        Task CreateAsync(Event ev);
+        Task UpdateAsync(Event ev);
+        Task DeleteAsync(string id);
     }
 }
