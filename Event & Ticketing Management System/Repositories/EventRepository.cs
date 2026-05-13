@@ -43,5 +43,20 @@ namespace Event___Ticketing_Management_System.Repositories
         {
             await _events.DeleteOneAsync(x => x.Id == id);
         }
+
+        public async Task<bool> DeductTicketQuantityAsync(string eventId, string ticketTypeId, int quantity)
+        {
+            var filter = Builders<Event>.Filter.And(
+                Builders<Event>.Filter.Eq(e => e.Id, eventId),
+                Builders<Event>.Filter.ElemMatch(e => e.TicketTypes,
+                    t => t.Id == ticketTypeId && (t.Quantity - t.Sold) >= quantity)
+            );
+
+            var update = Builders<Event>.Update
+                .Inc("TicketTypes.$.Sold", quantity);
+
+            var result = await _events.UpdateOneAsync(filter, update);
+            return result.ModifiedCount > 0;
+        }
     }
 }

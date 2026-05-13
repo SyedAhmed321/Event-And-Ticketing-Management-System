@@ -8,6 +8,8 @@ namespace Event___Ticketing_Management_System.Interfaces.Repositories
         Task<Event?> GetByIdAsync(string id);
         Task<List<Event>> GetByOrganizerIdAsync(string organizerId);
 
+        Task<bool> DeductTicketQuantityAsync(string eventId, string ticketTypeId, int quantity);
+
         Task CreateAsync(Event ev);
         Task UpdateAsync(Event ev);
         Task DeleteAsync(string id);
