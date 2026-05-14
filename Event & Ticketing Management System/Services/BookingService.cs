@@ -105,7 +105,7 @@ namespace Event___Ticketing_Management_System.Services
                         EventTitle = ev.Title,
                         QRCode = QRCodeHelper.GenerateQRCode(uniqueQRContent),
                         Status = "Active",
-                        CheckedIn = false,
+                        CheckedInAt = false,
                         IssuedAt = DateTime.UtcNow
                     });
                 }
@@ -235,7 +235,7 @@ namespace Event___Ticketing_Management_System.Services
             if (ticket == null)
                 return new { valid = false, message = "Ticket not found" };
 
-            if (ticket.Status == "Used" || ticket.CheckedIn)
+            if (ticket.Status == "Used" || ticket.CheckedInAt)
                 return new { valid = false, message = "Ticket already used" };
 
             if (ticket.Status == "Cancelled")
@@ -245,7 +245,7 @@ namespace Event___Ticketing_Management_System.Services
                 return new { valid = false, message = "Ticket is expired" };
 
             await _ticketRepository.MarkTicketCheckedInAsync(ticket.Id);
-
+             
             return new
             {
                 valid = true,

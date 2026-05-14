@@ -49,6 +49,7 @@ namespace Event___Ticketing_Management_System.Services
                 Status = "Published",
                 TicketTypes = dto.TicketTypes.Select(t => new TicketType
                 {
+                    Id = t.Id,
                     Name = t.Name,
                     Price = t.Price,
                     Quantity = t.Quantity,
