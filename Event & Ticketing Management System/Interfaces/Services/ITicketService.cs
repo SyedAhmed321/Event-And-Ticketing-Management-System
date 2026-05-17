@@ -4,22 +4,18 @@ namespace Event___Ticketing_Management_System.Interfaces.Services
 {
     public interface ITicketService
     {
-        // User gets all their tickets
-        Task<List<TicketResponseDto>> GetMyTicketsAsync(string userId);
 
-        // User gets a single ticket by ID
-        Task<TicketResponseDto> GetTicketByIdAsync(string ticketId, string userId);
+        //Generate tickets after booking confirmation
+        Task GenerateTicketsAsync(string bookingId, string userId);
 
-        // User gets all tickets for a specific booking
-        Task<List<TicketResponseDto>> GetTicketsByBookingIdAsync(string bookingId, string userId);
+        //Get user tickets
+        Task<List<TicketDto>> GetMyTicketsAsync(string userId);
 
-        // Organizer gets all tickets for their event
-        Task<List<TicketResponseDto>> GetTicketsByEventIdAsync(string eventId);
+        //Validate ticket via QR scan
+        Task<TicketValidationResponseDto> ValidateTicketAsync(ValidateTicketDto dto);
 
-        // Organizer scans QR at gate
-        Task<ValidateTicketResponseDto> ValidateAndCheckInAsync(string qrCode);
+        //Check-in ticket
+        Task<string> CheckInTicketAsync(CheckInDto dto, string staffUserId);
 
-        // Get attendance count for an event
-        Task<object> GetAttendanceAsync(string eventId);
     }
 }

@@ -16,7 +16,8 @@ namespace Event___Ticketing_Management_System.Repositories
 
         public async Task<User?> GetUserByEmailAsync(string email)
         {
-            return await _users.Find(x => x.Email == email).FirstOrDefaultAsync();
+            var normalizedEmail = email.ToLowerInvariant();
+            return await _users.Find(x => x.Email.ToLower() == normalizedEmail).FirstOrDefaultAsync();
         }
 
         public async Task<User?> GetUserByIdAsync(string id)
@@ -28,5 +29,19 @@ namespace Event___Ticketing_Management_System.Repositories
         {
             await _users.InsertOneAsync(user);
         }
+
+        public async Task<bool> EmailExistsAsync(string email)
+        {
+            var normalizedEmail = email.ToLowerInvariant();
+            return await _users.Find(x => x.Email.ToLower() == normalizedEmail).AnyAsync();
+        }
+
+
+        public async Task UpdateUserAsync(User user)
+        {
+            await _users.ReplaceOneAsync(x => x.Id == user.Id, user);
+        }
+
+        
     }
 }
