@@ -16,9 +16,12 @@ namespace Event___Ticketing_Management_System.DTOs.Events
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
+        public string BannerImage { get; set; } = string.Empty;
+
         public string Status { get; set; } = string.Empty;
 
         public List<TicketType> TicketTypes { get; set; } = new();
+        public int TotalTicketsSold { get; set; }
 
         public DateTime CreatedAt { get; set; }
     }

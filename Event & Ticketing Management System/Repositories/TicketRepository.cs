@@ -5,6 +5,7 @@ using MongoDB.Driver;
 
 namespace Event___Ticketing_Management_System.Repositories
 {
+
     public class TicketRepository : ITicketRepository
     {
         private readonly IMongoCollection<Ticket> _tickets;
@@ -14,17 +15,38 @@ namespace Event___Ticketing_Management_System.Repositories
             _tickets = mongoDbService.Database.GetCollection<Ticket>("Tickets");
         }
 
-        public async Task CreateTicketAsync(Ticket ticket)
-        {
-            await _tickets.InsertOneAsync(ticket);
-        }
-
-        public async Task CreateManyTicketsAsync(List<Ticket> tickets)
+        //Insert multiple tickets
+        public async Task InsertManyAsync(List<Ticket> tickets)
         {
             await _tickets.InsertManyAsync(tickets);
         }
 
-        public async Task<List<Ticket>> GetTicketsByUserIdAsync(string userId)
+        //Get by ticket ID
+        public async Task<Ticket?> GetByIdAsync(string ticketId)
+        {
+            return await _tickets
+                .Find(t => t.Id == ticketId)
+                .FirstOrDefaultAsync();
+        }
+
+        //Get ticket by QR code
+        public async Task<Ticket?> GetByQRCodeAsync(string qrCode)
+        {
+            return await _tickets
+                .Find(t => t.QRCode == qrCode)
+                .FirstOrDefaultAsync();
+        }
+
+        //Get tickets by booking
+        public async Task<List<Ticket>> GetByBookingIdAsync(string bookingId)
+        {
+            return await _tickets
+                .Find(t => t.BookingId == bookingId)
+                .ToListAsync();
+        }
+
+        //Get tickets by user
+        public async Task<List<Ticket>> GetByUserIdAsync(string userId)
         {
             return await _tickets
                 .Find(t => t.UserId == userId)
@@ -32,41 +54,14 @@ namespace Event___Ticketing_Management_System.Repositories
                 .ToListAsync();
         }
 
-        public async Task<List<Ticket>> GetTicketsByBookingIdAsync(string bookingId)
+        //Update ticket (used for check-in & status change)
+        public async Task UpdateAsync(Ticket ticket)
         {
-            return await _tickets
-                .Find(t => t.BookingId == bookingId)
-                .ToListAsync();
-        }
-
-        public async Task<Ticket?> GetTicketByQRCodeAsync(string qrCode)
-        {
-            return await _tickets
-                .Find(t => t.QRCode == qrCode)
-                .FirstOrDefaultAsync();
-        }
-
-        public async Task<Ticket?> GetTicketByIdAsync(string ticketId)
-        {
-            return await _tickets
-                .Find(t => t.Id == ticketId)
-                .FirstOrDefaultAsync();
-        }
-
-        public async Task UpdateTicketStatusAsync(string ticketId, string status)
-        {
-            await _tickets.UpdateOneAsync(
-                t => t.Id == ticketId,
-                Builders<Ticket>.Update.Set(t => t.Status, status));
-        }
-
-        public async Task MarkTicketCheckedInAsync(string ticketId)
-        {
-            await _tickets.UpdateOneAsync(
-                t => t.Id == ticketId,
-                Builders<Ticket>.Update
-                    .Set(t => t.CheckedIn, true)
-                    .Set(t => t.Status, "Used"));
+            await _tickets.ReplaceOneAsync(
+                t => t.Id == ticket.Id,
+                ticket
+            );
         }
     }
+
 }

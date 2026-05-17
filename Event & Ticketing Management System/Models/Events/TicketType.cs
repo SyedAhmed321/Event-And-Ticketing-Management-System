@@ -16,5 +16,8 @@ namespace Event___Ticketing_Management_System.Models.Events
 
         public DateTime SalesStart { get; set; }
         public DateTime SalesEnd { get; set; }
+
+        [BsonIgnore]
+        public int Available => Quantity - Sold;
     }
 }

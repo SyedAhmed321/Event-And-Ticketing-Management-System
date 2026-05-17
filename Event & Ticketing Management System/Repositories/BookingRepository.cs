@@ -42,11 +42,21 @@ namespace Event___Ticketing_Management_System.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task UpdateBookingStatusAsync(string bookingId, string status)
+
+        public async Task UpdateAsync(Booking booking)
         {
-            await _bookings.UpdateOneAsync(
-                b => b.Id == bookingId,
-                Builders<Booking>.Update.Set(b => b.BookingStatus, status));
+            await _bookings.ReplaceOneAsync(
+                b => b.Id == booking.Id,
+                booking
+            );
         }
+
+
+
+        public async Task DeleteBookingAsync(string bookingId)
+        {
+            await _bookings.DeleteOneAsync(b => b.Id == bookingId);
+        }
+
     }
 }

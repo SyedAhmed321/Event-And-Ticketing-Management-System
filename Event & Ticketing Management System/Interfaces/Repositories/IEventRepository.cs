@@ -7,6 +7,15 @@ namespace Event___Ticketing_Management_System.Interfaces.Repositories
         Task<List<Event>> GetAllAsync();
         Task<Event?> GetByIdAsync(string id);
         Task<List<Event>> GetByOrganizerIdAsync(string organizerId);
+        Task<List<Event>> GetFilteredEventsAsync(
+                    string? category,
+                    string? city,
+                    DateTime? date,
+                    decimal? minPrice,
+                    decimal? maxPrice,
+                    string? searchTerm
+                );
+
 
         Task<bool> DeductTicketQuantityAsync(string eventId, string ticketTypeId, int quantity);
 

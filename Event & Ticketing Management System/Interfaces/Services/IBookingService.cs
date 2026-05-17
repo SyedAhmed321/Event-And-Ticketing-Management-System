@@ -4,10 +4,20 @@ namespace Event___Ticketing_Management_System.Interfaces.Services
 {
     public interface IBookingService
     {
-        Task<BookingResponseDto> CreateBookingAsync(string userId, string userName, CreateBookingDto dto);
+
+        Task<string> CreateBookingAsync(string userId, CreateBookingDto dto);
+
+        // ✅ Confirm booking (payment step)
+        Task<string> ConfirmBookingAsync(string userId, ConfirmBookingDto dto);
+
+        // ✅ Cancel booking
+        Task<string> CancelBookingAsync(string userId, CancelBookingDto dto);
+
+        // ✅ Get user bookings
         Task<List<BookingResponseDto>> GetMyBookingsAsync(string userId);
-        Task<List<BookingResponseDto>> GetEventBookingsAsync(string eventId);
-        Task CancelBookingAsync(string bookingId, string userId);
-        Task<object> ValidateTicketAsync(string qrCode);
+
+        // ✅ Get booking by ID
+        Task<BookingResponseDto?> GetByIdAsync(string bookingId);
+
     }
 }

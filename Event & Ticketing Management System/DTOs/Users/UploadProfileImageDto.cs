@@ -2,5 +2,6 @@
 {
     public class UploadProfileImageDto
     {
+        public string ProfileImageUrl { get; set; } = string.Empty;
     }
 }
