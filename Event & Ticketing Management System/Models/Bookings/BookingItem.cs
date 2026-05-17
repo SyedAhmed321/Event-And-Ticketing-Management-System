@@ -3,8 +3,15 @@
     public class BookingItem
     {
         public string TicketTypeId { get; set; } = string.Empty;
+
         public string TicketTypeName { get; set; } = string.Empty;
+
         public int Quantity { get; set; }
+
         public decimal UnitPrice { get; set; }
+
+        public decimal TotalPrice => Quantity * UnitPrice;
+
+
     }
 }

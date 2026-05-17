@@ -2,6 +2,13 @@
 {
     public class ValidateTicketDto
     {
-        
+        public string QRCode { get; set; } = string.Empty;
     }
+
+
+    public class CheckInDto
+    {
+        public string QRCode { get; set; } = string.Empty;
+    }
+
 }

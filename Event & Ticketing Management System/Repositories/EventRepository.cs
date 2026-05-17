@@ -41,7 +41,12 @@ namespace Event___Ticketing_Management_System.Repositories
 
         public async Task DeleteAsync(string id)
         {
-            await _events.DeleteOneAsync(x => x.Id == id);
+            var update = Builders<Event>.Update
+                .Set(e => e.isDeleted, true)
+                .Set(e => e.Status, "Cancelled");
+
+            await _events.UpdateOneAsync(e => e.Id == id, update);
+
         }
 
         public async Task<bool> DeductTicketQuantityAsync(string eventId, string ticketTypeId, int quantity)
@@ -58,5 +63,62 @@ namespace Event___Ticketing_Management_System.Repositories
             var result = await _events.UpdateOneAsync(filter, update);
             return result.ModifiedCount > 0;
         }
+
+
+        public async Task<List<Event>> GetFilteredEventsAsync(
+                    string? category,
+                    string? city,
+                    DateTime? date,
+                    decimal? minPrice,
+                    decimal? maxPrice,
+                    string? searchTerm)
+        {
+            var filter = Builders<Event>.Filter.Empty;
+
+            //Category
+            if (!string.IsNullOrEmpty(category))
+                filter &= Builders<Event>.Filter.Eq(e => e.Category.ToString(), category);
+
+            //City
+            if (!string.IsNullOrEmpty(city))
+                filter &= Builders<Event>.Filter.Eq(e => e.City, city);
+
+            //Date filter
+            if (date.HasValue)
+            {
+                filter &= Builders<Event>.Filter.Lte(e => e.StartDate, date.Value) &
+                          Builders<Event>.Filter.Gte(e => e.EndDate, date.Value);
+            }
+
+            //Search term
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                filter &= Builders<Event>.Filter.Or(
+                    Builders<Event>.Filter.Regex(e => e.Title, searchTerm),
+                    Builders<Event>.Filter.Regex(e => e.Description, searchTerm)
+                );
+            }
+
+            //Base conditions (always applied)
+            filter &= Builders<Event>.Filter.Eq(e => e.isDeleted, false);
+            filter &= Builders<Event>.Filter.Eq(e => e.Status, "Published");
+
+            var events = await _events.Find(filter).ToListAsync();
+
+            //Price filtering (done in memory for nested ticketTypes)
+            if (minPrice.HasValue || maxPrice.HasValue)
+            {
+                events = events
+                    .Where(e =>
+                        e.TicketTypes.Any(t =>
+                            (!minPrice.HasValue || t.Price >= minPrice) &&
+                            (!maxPrice.HasValue || t.Price <= maxPrice)
+                        ))
+                    .ToList();
+            }
+
+            return events;
+        }
+
     }
 }

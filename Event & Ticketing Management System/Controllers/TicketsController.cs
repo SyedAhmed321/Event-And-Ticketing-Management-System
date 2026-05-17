@@ -6,9 +6,10 @@ using System.Security.Claims;
 
 namespace Event___Ticketing_Management_System.Controllers
 {
+
     [ApiController]
-    [Route("api/tickets")]
-    [Authorize]
+    [Route("api/[controller]")]
+    [Authorize] // ✅ All endpoints require login
     public class TicketsController : ControllerBase
     {
         private readonly ITicketService _ticketService;
@@ -18,70 +19,67 @@ namespace Event___Ticketing_Management_System.Controllers
             _ticketService = ticketService;
         }
 
-        // GET /api/tickets/my-tickets
-        // User sees all their tickets
+        // ✅ Helper to get logged-in user ID
+        private string GetUserId()
+        {
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        }
+
+        // ===============================
+        // ✅ GET MY TICKETS
+        // ===============================
+
+        /// <summary>
+        /// Get logged-in user's tickets
+        /// GET: api/tickets/my-tickets
+        /// </summary>
         [HttpGet("my-tickets")]
         public async Task<IActionResult> GetMyTickets()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            var result = await _ticketService.GetMyTicketsAsync(userId);
-            return Ok(result);
+            var userId = GetUserId();
+
+            var tickets = await _ticketService.GetMyTicketsAsync(userId);
+
+            return Ok(tickets);
         }
 
-        // GET /api/tickets/{ticketId}
-        // User sees single ticket with QR code
-        [HttpGet("{ticketId}")]
-        public async Task<IActionResult> GetTicket(string ticketId)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            var result = await _ticketService.GetTicketByIdAsync(ticketId, userId);
-            return Ok(result);
-        }
+        // ===============================
+        // ✅ VALIDATE TICKET (QR SCAN)
+        // ===============================
 
-        // GET /api/tickets/booking/{bookingId}
-        // User sees all tickets for a specific booking
-        [HttpGet("booking/{bookingId}")]
-        public async Task<IActionResult> GetTicketsByBooking(string bookingId)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            var result = await _ticketService
-                .GetTicketsByBookingIdAsync(bookingId, userId);
-            return Ok(result);
-        }
-
-        // GET /api/tickets/event/{eventId}
-        // Organizer sees all tickets for their event
-        [HttpGet("event/{eventId}")]
-        [Authorize(Roles = "Organizer,Admin")]
-        public async Task<IActionResult> GetTicketsByEvent(string eventId)
-        {
-            var result = await _ticketService.GetTicketsByEventIdAsync(eventId);
-            return Ok(result);
-        }
-
-        // POST /api/tickets/validate?qrCode=xxxxx
-        // Organizer scans QR code at gate
+        /// <summary>
+        /// Validate ticket using QR code
+        /// POST: api/tickets/validate
+        /// </summary>
         [HttpPost("validate")]
-        [Authorize(Roles = "Organizer,Admin")]
-        public async Task<IActionResult> ValidateTicket([FromQuery] string qrCode)
+        public async Task<IActionResult> ValidateTicket([FromBody] ValidateTicketDto dto)
         {
-            if (string.IsNullOrEmpty(qrCode))
-                return BadRequest(new { message = "QR code is required" });
+            var result = await _ticketService.ValidateTicketAsync(dto);
 
-            var result = await _ticketService.ValidateAndCheckInAsync(qrCode);
             return Ok(result);
         }
 
-        // GET /api/tickets/attendance/{eventId}
-        // Organizer sees attendance stats
-        [HttpGet("attendance/{eventId}")]
-        [Authorize(Roles = "Organizer,Admin")]
-        public async Task<IActionResult> GetAttendance(string eventId)
-        {
-            var result = await _ticketService.GetAttendanceAsync(eventId);
-            return Ok(result);
-        }
+        // ===============================
+        // ✅ CHECK-IN TICKET
+        // ===============================
 
-       
+        /// <summary>
+        /// Check-in ticket (used by staff/admin)
+        /// POST: api/tickets/check-in
+        /// </summary>
+        [Authorize(Roles = "Admin,Organizer")]
+        [HttpPost("check-in")]
+        public async Task<IActionResult> CheckInTicket([FromBody] CheckInDto dto)
+        {
+            var staffUserId = GetUserId();
+
+            var result = await _ticketService.CheckInTicketAsync(dto, staffUserId);
+
+            return Ok(new
+            {
+                message = result
+            });
+        }
     }
+
 }

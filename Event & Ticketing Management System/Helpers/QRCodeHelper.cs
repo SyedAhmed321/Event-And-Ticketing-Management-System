@@ -4,8 +4,10 @@ namespace Event___Ticketing_Management_System.Helpers
 {
     public static class QRCodeHelper
     {
-        public static string GenerateQRCode(string content)
+        public static string GenerateQRCode(string ticketId, string eventId, string userId)
         {
+            var content = $"{ticketId}|{eventId}|{userId}|{Guid.NewGuid()}";
+
             using var generator = new QRCodeGenerator();
             var qrData = generator.CreateQrCode(content, QRCodeGenerator.ECCLevel.Q);
             using var qrCode = new PngByteQRCode(qrData);

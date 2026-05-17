@@ -18,16 +18,44 @@ namespace Event___Ticketing_Management_System.Controllers
             _bookingService = bookingService;
         }
 
+        private string GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+
+
         // User books tickets
         [HttpPost]
         [Authorize(Roles = "User")]
         public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            var userName = User.FindFirst(ClaimTypes.Name)!.Value;
+            var userId = GetUserId();
 
-            var result = await _bookingService.CreateBookingAsync(userId, userName, dto);
-            return Ok(result);
+            var bookingId = await _bookingService.CreateBookingAsync(userId, dto);
+            return Ok(new
+            {
+                message = "Booking created successfully",
+                bookingId
+            });
+        }
+
+        [HttpPost("confirm")]
+        public async Task<IActionResult> ConfirmBooking([FromBody] ConfirmBookingDto dto)
+        {
+            var userId = GetUserId();
+            var result = await _bookingService.ConfirmBookingAsync(userId, dto);
+            return Ok(new
+            {
+                message = result
+            });
+        }
+
+        [HttpPost("cancel")]
+        public async Task<IActionResult> CancelBooking([FromBody] CancelBookingDto dto)
+        {
+            var userId = GetUserId();
+            var result = await _bookingService.CancelBookingAsync(userId, dto);
+            return Ok(new
+            {
+                message = result
+            });
         }
 
         // User views their booking history
@@ -35,37 +63,20 @@ namespace Event___Ticketing_Management_System.Controllers
         [Authorize]
         public async Task<IActionResult> GetMyBookings()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            var userId = GetUserId();
             var result = await _bookingService.GetMyBookingsAsync(userId);
             return Ok(result);
         }
 
-        // Organizer views bookings for their event
-        [HttpGet("event/{eventId}")]
-        [Authorize(Roles = "Organizer,Admin")]
-        public async Task<IActionResult> GetEventBookings(string eventId)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetBookingById(string id)
         {
-            var result = await _bookingService.GetEventBookingsAsync(eventId);
+            var result = await _bookingService.GetByIdAsync(id);
+            if(result == null)
+                return NotFound("booking not found");
+
             return Ok(result);
         }
 
-        // User cancels their booking
-        [HttpPatch("{bookingId}/cancel")]
-        [Authorize]
-        public async Task<IActionResult> CancelBooking(string bookingId)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            await _bookingService.CancelBookingAsync(bookingId, userId);
-            return Ok(new { message = "Booking cancelled successfully" });
-        }
-
-        // Organizer scans QR code at gate
-        [HttpPost("validate")]
-        [Authorize(Roles = "Organizer,Admin")]
-        public async Task<IActionResult> ValidateTicket([FromQuery] string qrCode)
-        {
-            var result = await _bookingService.ValidateTicketAsync(qrCode);
-            return Ok(result);
-        }
     }
 }

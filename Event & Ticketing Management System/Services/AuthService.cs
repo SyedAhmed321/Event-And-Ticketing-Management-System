@@ -3,6 +3,7 @@ using Event___Ticketing_Management_System.DTOs.Auth;
 using Event___Ticketing_Management_System.Interfaces.Repositories;
 using Event___Ticketing_Management_System.Interfaces.Services;
 using Event___Ticketing_Management_System.Models.Users;
+using Event___Ticketing_Management_System.Utilities;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -14,40 +15,67 @@ namespace Event___Ticketing_Management_System.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
+        private readonly IUserProfileRepository _userProfileRepository;
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration)
+        public AuthService(IUserRepository userRepository, IConfiguration configuration, IUserProfileRepository userProfileRepository)
         {
             _userRepository = userRepository;
             _configuration = configuration;
+            _userProfileRepository = userProfileRepository;
         }
 
         public async Task<string> RegisterAsync(RegisterDto dto)
         {
+            var allowedRoles = new[]
+            {
+                RoleConstants.User,
+                RoleConstants.Organizer,
+                RoleConstants.Vendor
+            };
+
+            var normalizedEmail = dto.Email.Trim().ToLower();
             var existingUser = await _userRepository
-                .GetUserByEmailAsync(dto.Email);
+                .GetUserByEmailAsync(normalizedEmail);
 
             if (existingUser != null)
             {
                 throw new Exception("User already exists");
             }
 
+            if(!allowedRoles.Contains(dto.Role))
+            {
+                throw new Exception("Invalid role");
+            }
+
             var user = new User
             {
                 FullName = dto.FullName,
-                Email = dto.Email,
+                Email = normalizedEmail,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Phone = dto.Phone,
                 Role = dto.Role
             };
 
             await _userRepository.CreateUserAsync(user);
+
+            var profile = new UserProfile
+            {
+                UserId = user.Id,
+                FirstName = dto.FullName.Split(' ')[0],
+                LastName = dto.FullName.Contains(' ') ? dto.FullName.Substring(dto.FullName.IndexOf(' ') + 1) : "",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _userProfileRepository.CreateAsync(profile);
 
             return GenerateJwtToken(user);
         }
 
         public async Task<string> LoginAsync(LoginDto dto)
         {
+            var normalizedEmail = dto.Email.Trim().ToLower();
             var user = await _userRepository
-                .GetUserByEmailAsync(dto.Email);
+                .GetUserByEmailAsync(normalizedEmail);
 
             if (user == null)
             {

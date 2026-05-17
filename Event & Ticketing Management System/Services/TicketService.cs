@@ -1,182 +1,150 @@
 ﻿using Event___Ticketing_Management_System.DTOs.Tickets;
 using Event___Ticketing_Management_System.Interfaces.Repositories;
 using Event___Ticketing_Management_System.Interfaces.Services;
+using Event___Ticketing_Management_System.Models.Tickets;
+using Event___Ticketing_Management_System.Helpers;
 
 namespace Event___Ticketing_Management_System.Services
 {
     public class TicketService : ITicketService
     {
-        private readonly ITicketRepository _ticketRepository;
 
-        public TicketService(ITicketRepository ticketRepository)
+        private readonly ITicketRepository _ticketRepository;
+        private readonly IBookingRepository _bookingRepository;
+
+        public TicketService(
+            ITicketRepository ticketRepository,
+            IBookingRepository bookingRepository)
         {
             _ticketRepository = ticketRepository;
+            _bookingRepository = bookingRepository;
         }
 
-        // ── USER: Get all my tickets ─────────────────────────────────
-        public async Task<List<TicketResponseDto>> GetMyTicketsAsync(string userId)
+        // ✅ GENERATE TICKETS AFTER CONFIRMATION
+        public async Task GenerateTicketsAsync(string bookingId, string userId)
         {
-            var tickets = await _ticketRepository.GetTicketsByUserIdAsync(userId);
+            var booking = await _bookingRepository.GetBookingByIdAsync(bookingId);
 
-            return tickets.Select(t => new TicketResponseDto
+            if (booking == null)
+                throw new Exception("Booking not found");
+
+            var tickets = new List<Ticket>();
+
+            foreach (var item in booking.Items)
+            {
+                for (int i = 0; i < item.Quantity; i++)
+                {
+                    var ticketId = Guid.NewGuid().ToString();
+
+                    var qrData = QRCodeHelper.GenerateQRCode(
+                        ticketId,
+                        booking.EventId,
+                        userId
+                    );
+
+                    var ticket = new Ticket
+                    {
+                        Id = ticketId,
+                        BookingId = booking.Id,
+                        EventId = booking.EventId,
+                        UserId = userId,
+                        TicketTypeId = item.TicketTypeId,
+                        QRCode = qrData,
+                        Status = TicketStatuses.Active,
+                        IssuedAt = DateTime.UtcNow,
+                        CheckedIn = false
+                    };
+
+                    tickets.Add(ticket);
+                }
+            }
+
+            await _ticketRepository.InsertManyAsync(tickets);
+        }
+
+        // ✅ GET USER TICKETS
+        public async Task<List<TicketDto>> GetMyTicketsAsync(string userId)
+        {
+            var tickets = await _ticketRepository.GetByUserIdAsync(userId);
+
+            return tickets.Select(t => new TicketDto
             {
                 Id = t.Id,
-                BookingId = t.BookingId,
                 EventId = t.EventId,
-                EventTitle = t.EventTitle,
-                TicketTypeName = t.TicketTypeName,
-                QRCode = t.QRCode,
-                Status = t.Status,
-                CheckedInAt = t.CheckedInAt,
-                IssuedAt = t.IssuedAt,
-                
-            }).ToList();
-        }
-
-        // ── USER: Get single ticket by ID ────────────────────────────
-        public async Task<TicketResponseDto> GetTicketByIdAsync(
-            string ticketId, string userId)
-        {
-            var ticket = await _ticketRepository.GetTicketByIdAsync(ticketId);
-
-            if (ticket == null)
-                throw new Exception("Ticket not found");
-
-            if (ticket.UserId != userId)
-                throw new Exception("You do not have access to this ticket");
-
-            return new TicketResponseDto
-            {
-                Id = ticket.Id,
-                BookingId = ticket.BookingId,
-                EventId = ticket.EventId,
-                EventTitle = ticket.EventTitle,
-                TicketTypeName = ticket.TicketTypeName,
-                QRCode = ticket.QRCode,
-                Status = ticket.Status,
-                CheckedInAt = ticket.CheckedInAt,
-                IssuedAt = ticket.IssuedAt,
-                
-            };
-        }
-
-        // ── USER: Get all tickets for a booking ──────────────────────
-        public async Task<List<TicketResponseDto>> GetTicketsByBookingIdAsync(
-            string bookingId, string userId)
-        {
-            var tickets = await _ticketRepository
-                .GetTicketsByBookingIdAsync(bookingId);
-
-            // Make sure these tickets belong to this user
-            var userTickets = tickets.Where(t => t.UserId == userId).ToList();
-
-            return userTickets.Select(t => new TicketResponseDto
-            {
-                Id = t.Id,
                 BookingId = t.BookingId,
-                EventId = t.EventId,
-                EventTitle = t.EventTitle,
-                TicketTypeName = t.TicketTypeName,
-                QRCode = t.QRCode,
+                TicketTypeId = t.TicketTypeId,
                 Status = t.Status,
-                CheckedInAt = t.CheckedInAt,
-                IssuedAt = t.IssuedAt,
-                
-            }).ToList();
-        }
-
-        // ── ORGANIZER: Get all tickets for their event ───────────────
-        public async Task<List<TicketResponseDto>> GetTicketsByEventIdAsync(string eventId)
-        {
-            var tickets = await _ticketRepository
-                .GetTicketsByEventIdAsync(eventId);
-
-            return tickets.Select(t => new TicketResponseDto
-            {
-                Id = t.Id,
-                BookingId = t.BookingId,
-                EventId = t.EventId,
-                EventTitle = t.EventTitle,
-                TicketTypeName = t.TicketTypeName,
                 QRCode = t.QRCode,
-                Status = t.Status,
-                CheckedInAt = t.CheckedInAt,
+                CheckedIn = t.CheckedIn,
                 IssuedAt = t.IssuedAt
             }).ToList();
         }
 
-        // ── ORGANIZER: Scan QR code at gate ─────────────────────────
-        public async Task<ValidateTicketResponseDto> ValidateAndCheckInAsync(string qrCode)
+        // ✅ VALIDATE TICKET (QR SCAN)
+        public async Task<TicketValidationResponseDto> ValidateTicketAsync(ValidateTicketDto dto)
         {
-            var ticket = await _ticketRepository.GetTicketByQRCodeAsync(qrCode);
+            var ticket = await _ticketRepository.GetByQRCodeAsync(dto.QRCode);
 
-            // Ticket not found
             if (ticket == null)
-                return new ValidateTicketResponseDto
+            {
+                return new TicketValidationResponseDto
                 {
-                    Valid = false,
-                    Message = "Ticket not found"
+                    IsValid = false,
+                    Message = "Invalid ticket"
                 };
+            }
 
-            // Already used
-            if (ticket.CheckedInAt || ticket.Status == "Used")
-                return new ValidateTicketResponseDto
+            if (ticket.Status != TicketStatuses.Active)
+            {
+                return new TicketValidationResponseDto
                 {
-                    Valid = false,
+                    IsValid = false,
+                    Message = "Ticket is not active",
+                    Status = ticket.Status
+                };
+            }
+
+            if (ticket.CheckedIn)
+            {
+                return new TicketValidationResponseDto
+                {
+                    IsValid = false,
                     Message = "Ticket already used",
-                    TicketId = ticket.Id,
-                    EventTitle = ticket.EventTitle,
-                    CheckedInAt = ticket.CheckedInAt
+                    Status = TicketStatuses.Used
                 };
+            }
 
-            // Cancelled
-            if (ticket.Status == "Cancelled")
-                return new ValidateTicketResponseDto
-                {
-                    Valid = false,
-                    Message = "Ticket is cancelled"
-                };
-
-            // Expired
-            if (ticket.Status == "Expired")
-                return new ValidateTicketResponseDto
-                {
-                    Valid = false,
-                    Message = "Ticket is expired"
-                };
-
-            // Valid — mark as checked in
-            await _ticketRepository.MarkTicketCheckedInAsync(ticket.Id);
-
-            return new ValidateTicketResponseDto
+            return new TicketValidationResponseDto
             {
-                Valid = true,
-                Message = "Ticket valid ✓ Entry approved",
+                IsValid = true,
+                Message = "Ticket is valid",
                 TicketId = ticket.Id,
-                EventTitle = ticket.EventTitle,
-                TicketTypeName = ticket.TicketTypeName,
-                UserName = ticket.UserName,
-                CheckedInAt = ticket.CheckedInAt,
+                Status = ticket.Status
             };
         }
 
-        // ── ORGANIZER: Get attendance stats for event ────────────────
-        public async Task<object> GetAttendanceAsync(string eventId)
+        // ✅ CHECK-IN TICKET
+        public async Task<string> CheckInTicketAsync(CheckInDto dto, string staffUserId)
         {
-            var total = await _ticketRepository.GetTotalTicketsByEventIdAsync(eventId);
-            var checkedIn = await _ticketRepository.GetCheckedInCountAsync(eventId);
-            var remaining = total - checkedIn;
+            var ticket = await _ticketRepository.GetByQRCodeAsync(dto.QRCode);
 
-            return new
-            {
-                eventId,
-                totalTickets = total,
-                checkedIn,
-                remaining,
-                attendancePercent = total > 0
-                    ? Math.Round((double)checkedIn / total * 100, 1)
-                    : 0
-            };
+            if (ticket == null)
+                throw new Exception("Invalid ticket");
+
+            if (ticket.CheckedIn)
+                throw new Exception("Ticket already used");
+
+            if (ticket.Status != TicketStatuses.Active)
+                throw new Exception("Ticket is not valid");
+
+            // ✅ Mark used
+            ticket.CheckedIn = true;
+            ticket.Status = TicketStatuses.Used;
+
+            await _ticketRepository.UpdateAsync(ticket);
+
+            return "Check-in successful";
         }
+
     }
 }
