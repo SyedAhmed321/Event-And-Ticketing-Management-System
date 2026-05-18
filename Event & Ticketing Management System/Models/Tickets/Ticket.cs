@@ -17,6 +17,7 @@ namespace Event___Ticketing_Management_System.Models.Tickets
         [BsonRepresentation(BsonType.ObjectId)]
         public string UserId { get; set; } = string.Empty;
 
+        public string EventTitle {  get; set; } = string.Empty;
         public string TicketTypeId { get; set; } = string.Empty;
 
         //QR Code unique string

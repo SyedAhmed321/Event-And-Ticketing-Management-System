@@ -9,13 +9,12 @@ namespace Event___Ticketing_Management_System.Repositories
     {
         private readonly IMongoCollection<Notification> _notifications;
 
-        public NotificationRepository(MongoDbService db)
+        public NotificationRepository(MongoDbService mongoDbService)
         {
-            _notifications = db.Database
-                .GetCollection<Notification>("Notifications");
+            _notifications = mongoDbService.Database.GetCollection<Notification>("Notifications");
         }
 
-        public async Task CreateNotificationAsync(Notification notification)
+        public async Task CreateAsync(Notification notification)
         {
             await _notifications.InsertOneAsync(notification);
         }
@@ -28,30 +27,16 @@ namespace Event___Ticketing_Management_System.Repositories
                 .ToListAsync();
         }
 
-        public async Task<int> GetUnreadCountAsync(string userId)
+        public async Task<Notification?> GetByIdAsync(string id)
         {
-            var count = await _notifications
-                .CountDocumentsAsync(n => n.UserId == userId && !n.IsRead);
-            return (int)count;
+            return await _notifications
+                .Find(n => n.Id == id)
+                .FirstOrDefaultAsync();
         }
 
-        public async Task MarkAsReadAsync(string notificationId)
+        public async Task UpdateAsync(Notification notification)
         {
-            await _notifications.UpdateOneAsync(
-                n => n.Id == notificationId,
-                Builders<Notification>.Update.Set(n => n.IsRead, true));
-        }
-
-        public async Task MarkAllAsReadAsync(string userId)
-        {
-            await _notifications.UpdateManyAsync(
-                n => n.UserId == userId && !n.IsRead,
-                Builders<Notification>.Update.Set(n => n.IsRead, true));
-        }
-
-        public async Task DeleteNotificationAsync(string notificationId)
-        {
-            await _notifications.DeleteOneAsync(n => n.Id == notificationId);
+            await _notifications.ReplaceOneAsync(n => n.Id == notification.Id, notification);
         }
     }
 }

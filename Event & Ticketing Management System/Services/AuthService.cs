@@ -16,12 +16,16 @@ namespace Event___Ticketing_Management_System.Services
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
         private readonly IUserProfileRepository _userProfileRepository;
+        private readonly IVendorService _vendorService;
+        private readonly IOrganizerService _organizerService;
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration, IUserProfileRepository userProfileRepository)
+        public AuthService(IUserRepository userRepository, IConfiguration configuration, IUserProfileRepository userProfileRepository, IVendorService vendorService, IOrganizerService organizerService)
         {
             _userRepository = userRepository;
             _configuration = configuration;
             _userProfileRepository = userProfileRepository;
+            _vendorService = vendorService;
+            _organizerService = organizerService;
         }
 
         public async Task<string> RegisterAsync(RegisterDto dto)
@@ -67,6 +71,25 @@ namespace Event___Ticketing_Management_System.Services
             };
 
             await _userProfileRepository.CreateAsync(profile);
+
+            if(dto.Role == RoleConstants.Vendor)
+            {
+                await _vendorService.CreateVendorAsync(user.Id, new DTOs.Vendors.CreateVendorDto
+                {
+                    BusinessName = "New Vendor",
+                    Description = "",
+                    Category = "",
+                    ContactEmail = dto.Email,
+                    ContactPhone = "",
+                    City = ""
+
+                });
+            }
+
+            if(dto.Role == RoleConstants.Organizer)
+            {
+                await _organizerService.CreateOrganizerAsync(user.Id);
+            }
 
             return GenerateJwtToken(user);
         }

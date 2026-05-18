@@ -2,5 +2,8 @@
 {
     public class CreateRequirementDto
     {
+        public string Category { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
     }
 }

@@ -11,22 +11,32 @@ namespace Event___Ticketing_Management_System.Services
 
         private readonly ITicketRepository _ticketRepository;
         private readonly IBookingRepository _bookingRepository;
+        private readonly IEventRepository _eventRepository;
 
         public TicketService(
             ITicketRepository ticketRepository,
-            IBookingRepository bookingRepository)
+            IBookingRepository bookingRepository,
+            IEventRepository eventRepository)
         {
             _ticketRepository = ticketRepository;
             _bookingRepository = bookingRepository;
+            _eventRepository = eventRepository;
         }
 
         // ✅ GENERATE TICKETS AFTER CONFIRMATION
         public async Task GenerateTicketsAsync(string bookingId, string userId)
         {
             var booking = await _bookingRepository.GetBookingByIdAsync(bookingId);
+            
 
             if (booking == null)
                 throw new Exception("Booking not found");
+
+            var ev = await _eventRepository.GetByIdAsync(booking.EventId);
+
+            if (ev == null)
+                throw new Exception("Event not found");
+
 
             var tickets = new List<Ticket>();
 
@@ -44,9 +54,9 @@ namespace Event___Ticketing_Management_System.Services
 
                     var ticket = new Ticket
                     {
-                        Id = ticketId,
                         BookingId = booking.Id,
                         EventId = booking.EventId,
+                        EventTitle = ev.Title,
                         UserId = userId,
                         TicketTypeId = item.TicketTypeId,
                         QRCode = qrData,
@@ -73,6 +83,7 @@ namespace Event___Ticketing_Management_System.Services
                 EventId = t.EventId,
                 BookingId = t.BookingId,
                 TicketTypeId = t.TicketTypeId,
+                EventTitle = t.EventTitle,
                 Status = t.Status,
                 QRCode = t.QRCode,
                 CheckedIn = t.CheckedIn,
