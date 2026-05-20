@@ -2,5 +2,8 @@
 {
     public class VerifyVendorDto
     {
+        public string VendorId { get; set; } = string.Empty;
+
+        public bool IsVerified { get; set; }
     }
 }

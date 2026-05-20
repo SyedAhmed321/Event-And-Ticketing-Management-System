@@ -2,5 +2,10 @@
 {
     public class SuspendUserDto
     {
+        public string UserId { get; set; } = string.Empty;
+
+        public bool IsSuspended { get; set; }
+
+        public string? Reason { get; set; }
     }
 }

@@ -20,6 +20,17 @@ namespace Event___Ticketing_Management_System.Models.Bookings
         public const string JazzCash = "JazzCash";
         public const string EasyPaisa = "EasyPaisa";
         public const string None = "None";
-    }
 
+
+        public static List<string> GetAll()
+        {
+            return new List<string>
+            {
+                Card,
+                JazzCash,
+                EasyPaisa
+            };
+        }
+
+    }
 }

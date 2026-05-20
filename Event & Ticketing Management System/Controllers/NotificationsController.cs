@@ -1,5 +1,4 @@
 ﻿using Event___Ticketing_Management_System.Interfaces.Services;
-using Event___Ticketing_Management_System.Models.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -18,47 +17,46 @@ namespace Event___Ticketing_Management_System.Controllers
             _notificationService = notificationService;
         }
 
-        // GET all notifications for logged in user
+        // ✅ Helper method to extract user ID
+        private string GetUserId()
+        {
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                   ?? throw new UnauthorizedAccessException("User not authenticated");
+        }
+
+        // =========================================
+        // ✅ GET MY NOTIFICATIONS
+        // =========================================
         [HttpGet]
         public async Task<IActionResult> GetMyNotifications()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            var result = await _notificationService.GetMyNotificationsAsync(userId);
-            return Ok(result);
+            var userId = GetUserId();
+
+            var notifications = await _notificationService
+                .GetMyNotificationsAsync(userId);
+
+            return Ok(new
+            {
+                message = "Notifications retrieved successfully",
+                data = notifications
+            });
         }
 
-        // GET unread count — useful for showing badge on bell icon
-        [HttpGet("unread-count")]
-        public async Task<IActionResult> GetUnreadCount()
+        // =========================================
+        // ✅ MARK NOTIFICATION AS READ
+        // =========================================
+        [HttpPut("{id}/read")]
+        public async Task<IActionResult> MarkAsRead(string id)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            var count = await _notificationService.GetUnreadCountAsync(userId);
-            return Ok(new { unreadCount = count });
-        }
+            var userId = GetUserId();
 
-        // PATCH mark single notification as read
-        [HttpPatch("{notificationId}/read")]
-        public async Task<IActionResult> MarkAsRead(string notificationId)
-        {
-            await _notificationService.MarkAsReadAsync(notificationId);
-            return Ok(new { message = "Notification marked as read" });
-        }
+            var result = await _notificationService
+                .MarkAsReadAsync(userId, id);
 
-        // PATCH mark all notifications as read
-        [HttpPatch("mark-all-read")]
-        public async Task<IActionResult> MarkAllAsRead()
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            await _notificationService.MarkAllAsReadAsync(userId);
-            return Ok(new { message = "All notifications marked as read" });
-        }
-
-        // DELETE single notification
-        [HttpDelete("{notificationId}")]
-        public async Task<IActionResult> DeleteNotification(string notificationId)
-        {
-            await _notificationService.DeleteNotificationAsync(notificationId);
-            return Ok(new { message = "Notification deleted" });
+            return Ok(new
+            {
+                message = result
+            });
         }
     }
 }

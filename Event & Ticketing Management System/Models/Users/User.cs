@@ -31,6 +31,10 @@ namespace Event___Ticketing_Management_System.Models.Users
         [BsonElement("isVerified")]
         public bool IsVerified { get; set; } = false;
 
+        [BsonIgnoreIfNull]
+        [BsonElement("IsSuspended")]
+        public bool IsSuspended { get; set; } = false;
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
